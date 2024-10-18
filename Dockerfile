@@ -18,5 +18,11 @@ COPY . /app
 EXPOSE 5000
 EXPOSE 631
 
-# Start CUPS and run the Flask app
-CMD service cups start && lpadmin -p HP_LaserJet_400_M401dw_6E99D5 -E -v ipp://10.25.0.218/ipp/print -m everywhere && python app.py
+# Step 6: Define environment variables with defaults (can be overridden in docker run)
+ENV PRINTER_NAME="HP_LaserJet_400_M401dw_6E99D5"
+ENV PRINTER_IP="10.25.0.218"
+
+# Step 7: Start CUPS and run the Flask app
+CMD service cups start && \
+    lpadmin -p $PRINTER_NAME -E -v ipp://$PRINTER_IP/ipp/print -m everywhere && \
+    python app.py
