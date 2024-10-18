@@ -18,5 +18,5 @@ COPY . /app
 EXPOSE 5000
 EXPOSE 631
 
-# Step 6: Start CUPS and run the Flask application
-CMD service cups start && python3 app.py
+# Start CUPS and run the Flask app
+CMD service cups start && lpadmin -p HP_LaserJet_400_M401dw_6E99D5 -E -v ipp://10.25.0.218/ipp/print -m everywhere && python app.py
