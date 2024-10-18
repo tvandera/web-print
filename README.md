@@ -1,59 +1,68 @@
 
 # Flask CUPS Printer Application
 
-This application allows you to upload a file and print it using a network printer (configured with CUPS) from within a Docker container.
+This Docker image provides a Flask web application that allows users to upload files and print them using a network printer via CUPS (Common Unix Printing System). The printer is configured via the IPP protocol (Internet Printing Protocol).
 
 ## Features
 
-- Upload files of types `pdf`, `txt`, `jpg`, `jpeg`, and `png`.
-- Automatically print uploaded files to a configured printer via IPP protocol.
-- Uses CUPS for printing within the Docker container.
+- **File Upload**: Supports `pdf`, `txt`, `jpg`, `jpeg`, and `png` formats.
+- **Network Printing**: Print files to a network printer using IPP.
+- **Environment Variable Support**: Customize printer name and IP address via environment variables.
+- **CUPS Integration**: Manages print jobs through CUPS within the Docker container.
 
-## Setup and Installation
+## How to Use
 
-### 1. Clone the repository
+### Step 1: Pull the Docker Image
 
-```bash
-git clone <repository-url>
-cd <repository-directory>
-```
-
-### 2. Build the Docker image
+You can pull the image from Docker Hub using the following command:
 
 ```bash
-docker build -t cups-flask-printer .
+docker pull <your-dockerhub-username>/cups-flask-printer:latest
 ```
 
-### 3. Run the Docker container
+### Step 2: Run the Docker Container
+
+Run the container with default printer configuration:
 
 ```bash
-docker run -d -p 5000:5000 cups-flask-printer
+docker run -d -p 5000:5000 <your-dockerhub-username>/cups-flask-printer
 ```
 
-### 4. Access the application
+This command will:
+- Launch the Flask web application on port `5000`.
+- Automatically configure a network printer with the default IPP protocol at `ipp://10.25.0.218/ipp/print`.
 
-Open a web browser and navigate to:
+### Step 3: Access the Web Application
+
+Once the container is running, open a web browser and navigate to:
 
 ```
 http://localhost:5000
 ```
 
-You can now upload a file and print it to the network printer.
+You can upload files through the web interface and print them to the configured network printer.
 
-## Printer Configuration
+### Customizing the Printer
 
-This setup uses an HP LaserJet 400 M401dw printer configured via IPP protocol at the following address:
+If you want to override the default printer configuration (name or IP address), you can pass environment variables to the container when starting it:
 
+```bash
+docker run -d -p 5000:5000 \
+  -e PRINTER_NAME="My_Printer" \
+  -e PRINTER_IP="192.168.1.100" \
+  <your-dockerhub-username>/cups-flask-printer
 ```
-ipp://10.25.0.218/ipp/print
-```
 
-### CUPS Configuration (Inside the Container)
+In this example:
+- **PRINTER_NAME**: Specifies the printer name.
+- **PRINTER_IP**: Specifies the IP address of the network printer.
+
+### Printer Configuration (Inside the Container)
 
 The printer is automatically added to CUPS inside the container using the `lpadmin` command during container startup:
 
 ```bash
-lpadmin -p HP_LaserJet_400_M401dw_6E99D5 -E -v ipp://10.25.0.218/ipp/print -m everywhere
+lpadmin -p $PRINTER_NAME -E -v ipp://$PRINTER_IP/ipp/print -m everywhere
 ```
 
 ### Verify Printer Configuration
@@ -66,14 +75,22 @@ docker exec -it <container-id> lpstat -p
 
 This will list the available printers in the container.
 
+## Example Usage
+
+1. Upload a file (e.g., PDF) through the web interface.
+2. The file will be printed using the specified network printer.
+
 ## Troubleshooting
 
-- Ensure that the printer is reachable at the specified IP address (`10.25.0.218`).
-- If the application fails to print, check the logs using:
-
-```bash
-docker logs <container-id>
-```
+- **Ensure Printer is Reachable**: Verify that the printer is accessible at the specified IP address (`10.25.0.218` by default).
+- **Check Container Logs**: View the logs inside the container for any errors:
+   ```bash
+   docker logs <container-id>
+   ```
+- **Check CUPS Status**: Use the following command to verify the status of CUPS inside the container:
+   ```bash
+   docker exec -it <container-id> lpstat -r
+   ```
 
 ## License
 
