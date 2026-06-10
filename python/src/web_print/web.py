@@ -5,6 +5,33 @@ from flask import Flask, flash, redirect, render_template, request, url_for
 from werkzeug.utils import secure_filename
 
 DEFAULT_ALLOWED_EXTENSIONS = {"pdf", "txt", "jpg", "jpeg", "png"}
+PAPER_SIZE_CHOICES = {
+    "na_letter_8.5x11in": "Letter (8.5 x 11 in)",
+    "iso_a4_210x297mm": "A4 (210 x 297 mm)",
+    "na_legal_8.5x14in": "Legal (8.5 x 14 in)",
+    "iso_a5_148x210mm": "A5 (148 x 210 mm)",
+}
+ORIENTATION_CHOICES = {
+    "portrait": ("Portrait", "3"),
+    "landscape": ("Landscape", "4"),
+    "reverse-landscape": ("Reverse Landscape", "5"),
+    "reverse-portrait": ("Reverse Portrait", "6"),
+}
+SIDES_CHOICES = {
+    "one-sided": "One-sided",
+    "two-sided-long-edge": "Two-sided (long edge)",
+    "two-sided-short-edge": "Two-sided (short edge)",
+}
+PRINT_QUALITY_CHOICES = {
+    "draft": ("Draft", "3"),
+    "normal": ("Normal", "4"),
+    "high": ("High", "5"),
+}
+SCALING_MODE_CHOICES = {
+    "legacy": "Legacy (fit-to-page)",
+    "modern": "Modern IPP (print-scaling=fit)",
+    "both": "Compatibility (send both)",
+}
 PRINTER_STATE_LABELS = {
     3: "Idle",
     4: "Printing",
@@ -43,16 +70,61 @@ def create_app() -> Flask:
     def allowed_file(filename: str) -> bool:
         return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
 
-    def print_file(filepath: str, printer_name: str | None = None) -> None:
+    def print_file(filepath: str, printer_name: str | None = None, options: dict | None = None) -> None:
         conn = cups.Connection()
         printers = conn.getPrinters()
 
         if not printer_name or printer_name not in printers:
             raise ValueError(f"Printer '{printer_name}' not found or not specified.")
 
+        job_options = options or {}
         print(f"Printing {filepath} on {printer_name}")
-        print_id = conn.printFile(printer_name, filepath, "Flask Print Job", {})
+        print_id = conn.printFile(printer_name, filepath, "Flask Print Job", job_options)
         print(f"Print job created with ID {print_id}")
+
+    def build_print_options(form_data) -> dict[str, str]:
+        options: dict[str, str] = {}
+
+        paper_size = form_data.get("paper_size", "")
+        if paper_size in PAPER_SIZE_CHOICES:
+            options["media"] = paper_size
+
+        orientation = form_data.get("orientation", "")
+        if orientation in ORIENTATION_CHOICES:
+            options["orientation-requested"] = ORIENTATION_CHOICES[orientation][1]
+
+        sides = form_data.get("sides", "")
+        if sides in SIDES_CHOICES:
+            options["sides"] = sides
+
+        print_quality = form_data.get("print_quality", "")
+        if print_quality in PRINT_QUALITY_CHOICES:
+            options["print-quality"] = PRINT_QUALITY_CHOICES[print_quality][1]
+
+        fit_to_page = form_data.get("fit_to_page") == "on"
+        scaling_mode = form_data.get("scaling_mode", "both")
+        if scaling_mode not in SCALING_MODE_CHOICES:
+            scaling_mode = "both"
+
+        if fit_to_page:
+            if scaling_mode in ("legacy", "both"):
+                options["fit-to-page"] = "true"
+            if scaling_mode in ("modern", "both"):
+                options["print-scaling"] = "fit"
+        else:
+            if scaling_mode in ("legacy", "both"):
+                options["fit-to-page"] = "false"
+            if scaling_mode in ("modern", "both"):
+                options["print-scaling"] = "none"
+
+        raw_copies = str(form_data.get("copies", "1")).strip()
+        try:
+            copies = max(1, min(99, int(raw_copies)))
+            options["copies"] = str(copies)
+        except ValueError:
+            options["copies"] = "1"
+
+        return options
 
     def _normalize_reasons(raw_reasons: object) -> list[str]:
         if isinstance(raw_reasons, str):
@@ -141,9 +213,10 @@ def create_app() -> Flask:
                 file.save(filepath)
 
                 printer_name = request.form.get("printer")
+                print_options = build_print_options(request.form)
 
                 try:
-                    print_file(filepath, printer_name)
+                    print_file(filepath, printer_name, print_options)
                     flash(f"File {filename} sent to printer {printer_name}!")
                 except Exception as e:
                     flash(f"Failed to print the file: {str(e)}")
@@ -169,6 +242,11 @@ def create_app() -> Flask:
             selected_printer=selected_printer,
             printer_status=printer_status,
             queue=queue,
+            paper_size_choices=PAPER_SIZE_CHOICES,
+            orientation_choices={key: value[0] for key, value in ORIENTATION_CHOICES.items()},
+            sides_choices=SIDES_CHOICES,
+            print_quality_choices={key: value[0] for key, value in PRINT_QUALITY_CHOICES.items()},
+            scaling_mode_choices=SCALING_MODE_CHOICES,
         )
 
     return app

@@ -70,6 +70,50 @@
             background-color: #f0f0f0;
         }
 
+        .option-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .option-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        .preview-box {
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .preview-box img,
+        .preview-box embed {
+            width: 100%;
+            max-height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .preview-box pre {
+            margin: 0;
+            max-height: 220px;
+            overflow: auto;
+            white-space: pre-wrap;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .hint {
+            color: #555;
+            font-size: 13px;
+        }
+
         label {
             display: block;
             margin-bottom: 8px;
@@ -149,6 +193,72 @@
             <label for="file">Choose file:</label>
             <input type="file" name="file" id="file" required>
 
+            <div class="option-grid">
+                <div>
+                    <label for="paper_size">Paper size:</label>
+                    <select name="paper_size" id="paper_size">
+                        {% for value, label in paper_size_choices.items() %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="orientation">Orientation:</label>
+                    <select name="orientation" id="orientation">
+                        {% for value, label in orientation_choices.items() %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="sides">Sides:</label>
+                    <select name="sides" id="sides">
+                        {% for value, label in sides_choices.items() %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="print_quality">Quality:</label>
+                    <select name="print_quality" id="print_quality">
+                        {% for value, label in print_quality_choices.items() %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="copies">Copies:</label>
+                    <input type="number" name="copies" id="copies" min="1" max="99" value="1">
+                </div>
+
+                <div>
+                    <label for="fit_to_page">Size to fit page:</label>
+                    <input type="checkbox" name="fit_to_page" id="fit_to_page" checked>
+                </div>
+
+                <div class="full">
+                    <label for="scaling_mode">Fit mode:</label>
+                    <select name="scaling_mode" id="scaling_mode">
+                        {% for value, label in scaling_mode_choices.items() %}
+                        <option value="{{ value }}" {% if value == "both" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="hint">Compatibility mode sends both legacy and modern fit options.</div>
+                </div>
+            </div>
+
+            <div id="preview-panel" class="preview-box" style="display:none;">
+                <div id="preview-meta" class="hint"></div>
+                <img id="preview-image" alt="Image preview" style="display:none; margin-top:8px;">
+                <embed id="preview-pdf" type="application/pdf" style="display:none; margin-top:8px;" />
+                <pre id="preview-text" style="display:none; margin-top:8px;"></pre>
+                <div id="preview-fallback" class="hint" style="display:none; margin-top:8px;">Preview is not available for this file type.</div>
+            </div>
+
             <input type="submit" value="Upload and Print">
         </form>
 
@@ -196,5 +306,67 @@
         </div>
         {% endif %}
     </div>
+
+    <script>
+        const fileInput = document.getElementById("file");
+        const previewPanel = document.getElementById("preview-panel");
+        const previewMeta = document.getElementById("preview-meta");
+        const previewImage = document.getElementById("preview-image");
+        const previewPdf = document.getElementById("preview-pdf");
+        const previewText = document.getElementById("preview-text");
+        const previewFallback = document.getElementById("preview-fallback");
+
+        function hideAllPreviews() {
+            previewImage.style.display = "none";
+            previewPdf.style.display = "none";
+            previewText.style.display = "none";
+            previewFallback.style.display = "none";
+            previewImage.removeAttribute("src");
+            previewPdf.removeAttribute("src");
+            previewText.textContent = "";
+        }
+
+        function showPreviewForFile(file) {
+            hideAllPreviews();
+            if (!file) {
+                previewPanel.style.display = "none";
+                return;
+            }
+
+            previewPanel.style.display = "block";
+            previewMeta.textContent = `${file.name} (${Math.ceil(file.size / 1024)} KB)`;
+            const objectUrl = URL.createObjectURL(file);
+
+            if (file.type.startsWith("image/")) {
+                previewImage.src = objectUrl;
+                previewImage.style.display = "block";
+                return;
+            }
+
+            if (file.type === "application/pdf") {
+                previewPdf.src = objectUrl;
+                previewPdf.style.display = "block";
+                return;
+            }
+
+            if (file.type.startsWith("text/") || file.name.toLowerCase().endsWith(".txt")) {
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const text = String(reader.result || "").slice(0, 4000);
+                    previewText.textContent = text || "(empty file)";
+                    previewText.style.display = "block";
+                };
+                reader.readAsText(file);
+                return;
+            }
+
+            previewFallback.style.display = "block";
+        }
+
+        fileInput.addEventListener("change", function (event) {
+            const selectedFile = event.target.files && event.target.files[0];
+            showPreviewForFile(selectedFile || null);
+        });
+    </script>
 </body>
 </html>
