@@ -17,7 +17,7 @@ This repository is now a standard Python package using a `pyproject.toml` and `s
 Install locally:
 
 ```bash
-pip install .
+pip install ./python
 ```
 
 Run the web app:
