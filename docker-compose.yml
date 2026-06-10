@@ -1,0 +1,16 @@
+services:
+  web-print:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-print
+    ports:
+      - "50001:5000"
+      - "1631:631"
+    environment:
+      PRINTER_NAME: HP_LaserJet_255wd
+      PRINTER_IP: printer.kb21.be
+      FLASK_RUN_HOST: ${FLASK_RUN_HOST:-0.0.0.0}
+      FLASK_RUN_PORT: ${FLASK_RUN_PORT:-5000}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-supersecretkey}
+    restart: unless-stopped

@@ -1,25 +1,38 @@
-# Step 1: Base image
-FROM python:3.9-slim
+# Step 1: Build wheel with build dependencies
+FROM python:3.12-slim AS builder
 
-# Step 2: Install system dependencies (CUPS and build tools)
-RUN apt-get update && \
-    apt-get install -y cups libcups2-dev build-essential && \
-    apt-get clean
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends build-essential libcups2-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Step 3: Copy and install the Python package
+WORKDIR /build
+COPY python .
+COPY README.md LICENSE ./
+RUN pip wheel --no-cache-dir --wheel-dir /wheels .
+
+# Step 2: Runtime image without build dependencies
+FROM python:3.12-slim
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cups libcups2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-COPY . /app
-RUN pip install --no-cache-dir .
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
-# Step 5: Expose the Flask port and the CUPS web interface port
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Step 3: Expose the Flask port and the CUPS web interface port
 EXPOSE 5000
 EXPOSE 631
 
-# Step 6: Define environment variables with defaults (can be overridden in docker run)
+# Step 4: Define environment variables with defaults (can be overridden in docker run)
 ENV PRINTER_NAME="HP_LaserJet_400_M401dw_6E99D5"
 ENV PRINTER_IP="10.25.0.218"
 
-# Step 7: Start CUPS and run the Flask app
-CMD service cups start && \
-    lpadmin -p $PRINTER_NAME -E -v ipp://$PRINTER_IP/ipp/print -m everywhere && \
-    web-print
+# Step 5: Start CUPS and run the Flask app
+ENTRYPOINT ["docker-entrypoint.sh"]
