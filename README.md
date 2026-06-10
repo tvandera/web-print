@@ -10,6 +10,29 @@ This Docker image provides a Flask web application that allows users to upload f
 - **Environment Variable Support**: Customize printer name and IP address via environment variables.
 - **CUPS Integration**: Manages print jobs through CUPS within the Docker container.
 
+## Python Package Usage
+
+This repository is now a standard Python package using a `pyproject.toml` and `src` layout.
+
+Install locally:
+
+```bash
+pip install .
+```
+
+Run the web app:
+
+```bash
+web-print
+```
+
+List printers (or print a file) from CLI:
+
+```bash
+web-print-printers
+web-print-printers --print-file /path/to/file.pdf --printer "Printer_Name"
+```
+
 ## How to Use
 
 ### Step 1: Pull the Docker Image

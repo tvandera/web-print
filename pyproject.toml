@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "web-print"
+version = "0.1.0"
+description = "Flask and CUPS based web printing service"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+  { name = "web-print maintainers" }
+]
+dependencies = [
+  "Flask>=3.0,<4",
+  "pycups>=2.0"
+]
+
+[project.scripts]
+web-print = "web_print.web:main"
+web-print-printers = "web_print.printers:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+web_print = ["templates/*.html"]

@@ -6,13 +6,10 @@ RUN apt-get update && \
     apt-get install -y cups libcups2-dev build-essential && \
     apt-get clean
 
-# Step 3: Install Flask and pycups
-RUN pip install flask
-RUN pip install pycups
-
-# Step 4: Copy the application code
+# Step 3: Copy and install the Python package
 WORKDIR /app
 COPY . /app
+RUN pip install --no-cache-dir .
 
 # Step 5: Expose the Flask port and the CUPS web interface port
 EXPOSE 5000
@@ -25,4 +22,4 @@ ENV PRINTER_IP="10.25.0.218"
 # Step 7: Start CUPS and run the Flask app
 CMD service cups start && \
     lpadmin -p $PRINTER_NAME -E -v ipp://$PRINTER_IP/ipp/print -m everywhere && \
-    python app.py
+    web-print
