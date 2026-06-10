@@ -35,6 +35,41 @@
             width: 400px;
         }
 
+        .panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+            width: 400px;
+            margin-top: 16px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .queue-table th,
+        .queue-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .queue-table th {
+            background-color: #f0f0f0;
+        }
+
         label {
             display: block;
             margin-bottom: 8px;
@@ -107,7 +142,7 @@
             <label for="printer">Select Printer:</label>
             <select name="printer" id="printer" required>
                 {% for printer_name, printer_info in printers.items() %}
-                <option value="{{ printer_name }}">{{ printer_name }}</option>
+                <option value="{{ printer_name }}" {% if printer_name == selected_printer %}selected{% endif %}>{{ printer_name }}</option>
                 {% endfor %}
             </select>
 
@@ -116,6 +151,50 @@
 
             <input type="submit" value="Upload and Print">
         </form>
+
+        {% if printer_status %}
+        <div class="panel">
+            <h2>Printer Status</h2>
+            <div class="status-grid">
+                <div><strong>Name:</strong> {{ printer_status.name }}</div>
+                <div><strong>Connectivity:</strong> {{ printer_status.connectivity }}</div>
+                <div><strong>State:</strong> {{ printer_status.state }}</div>
+                <div><strong>Message:</strong> {{ printer_status.message }}</div>
+                <div><strong>State Reasons:</strong> {{ printer_status.reasons }}</div>
+                <div><strong>Accepting Jobs:</strong> {{ printer_status.accepting_jobs }}</div>
+                <div><strong>Location:</strong> {{ printer_status.location }}</div>
+                <div><strong>Description:</strong> {{ printer_status.description }}</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Print Queue</h2>
+            {% if queue %}
+            <table class="queue-table">
+                <thead>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Job Name</th>
+                        <th>User</th>
+                        <th>State</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in queue %}
+                    <tr>
+                        <td>{{ job.id }}</td>
+                        <td>{{ job.name }}</td>
+                        <td>{{ job.user }}</td>
+                        <td>{{ job.state }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No active jobs in queue.</p>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </body>
 </html>
